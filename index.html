@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Персональный ассистент для планирования дня</title>
+    <style>
+        :root {
+            --bg-color: #f5f5f5;
+            --text-color: #333;
+            --card-bg: #fff;
+            --border-color: #ddd;
+            --primary-color: #4a6fa5;
+            --hover-color: #f0f0f0;
+            --completed-color: #888;
+            --high-priority: #ff6b6b;
+            --medium-priority: #ffd93d;
+            --low-priority: #6bcf7f;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1e1e1e;
+            --text-color: #f5f5f5;
+            --card-bg: #2d2d2d;
+            --border-color: #444;
+            --primary-color: #6b8cbc;
+            --hover-color: #3d3d3d;
+            --completed-color: #aaa;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        h1 {
+            font-size: 1.8rem;
+        }
+
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--primary-color);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .calendar-section, .tasks-section {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+
+        .calendar-day {
+            text-align: center;
+            font-weight: bold;
+            padding: 5px;
+        }
+
+        .calendar-date {
+            text-align: center;
+            padding: 10px 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .calendar-date:hover {
+            background-color: var(--hover-color);
+        }
+
+        .calendar-date.today {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .calendar-date.selected {
+            border: 2px solid var(--primary-color);
+        }
+
+        .task-count {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tasks-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .task-form {
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 10px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: var(--card-bg);
+            color: var(--text-color);
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .priority-options {
+            display: flex;
+            gap: 10px;
+        }
+
+        .priority-option {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+
+        .priority-option.selected {
+            border-color: var(--text-color);
+        }
+
+        .priority-high {
+            background-color: var(--high-priority);
+        }
+
+        .priority-medium {
+            background-color: var(--medium-priority);
+        }
+
+        .priority-low {
+            background-color: var(--low-priority);
+        }
+
+        .tasks-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+
+        .task-item:last-child {
+            border-bottom: none;
+        }
+
+        .task-item:hover {
+            background-color: var(--hover-color);
+        }
+
+        .task-priority {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .task-text {
+            flex: 1;
+        }
+
+        .task-time {
+            font-size: 0.8rem;
+            color: var(--completed-color);
+            margin-right: 10px;
+        }
+
+        .task-completed {
+            text-decoration: line-through;
+            color: var(--completed-color);
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .actions button {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            width: auto;
+            color: var(--text-color);
+        }
+
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            display: none;
+            z-index: 1001;
+            cursor: pointer;
+            max-width: 300px;
+            transition: transform 0.3s, opacity 0.3s;
+        }
+
+        .notification:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+        }
+
+        .notification-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .notification-title::before {
+            content: "⏰";
+            font-size: 1.2em;
+        }
+
+        .notification-content {
+            font-size: 0.9rem;
+        }
+
+        .notification-close {
+            position: absolute;
+            top: 5px;
+            right: 8px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            width: auto;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .tooltip {
+            position: absolute;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+            max-width: 250px;
+            display: none;
+        }
+
+        .tooltip-task {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .tooltip-task:last-child {
+            margin-bottom: 0;
+        }
+
+        .notification-high {
+            border-left: 4px solid var(--high-priority);
+        }
+
+        .notification-medium {
+            border-left: 4px solid var(--medium-priority);
+        }
+
+        .notification-low {
+            border-left: 4px solid var(--low-priority);
+        }
+
+        .sound-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .sound-actions button {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Персональный ассистент для планирования дня</h1>
+            <div class="theme-toggle">
+                <span>Тёмная тема</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="theme-toggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <section class="calendar-section">
+                <div class="calendar-header">
+                    <button id="prev-month">&lt;</button>
+                    <h2 id="current-month"></h2>
+                    <button id="next-month">&gt;</button>
+                </div>
+                <div class="calendar-grid" id="calendar-days">
+                    <!-- Дни недели -->
+                    <div class="calendar-day">Пн</div>
+                    <div class="calendar-day">Вт</div>
+                    <div class="calendar-day">Ср</div>
+                    <div class="calendar-day">Чт</div>
+                    <div class="calendar-day">Пт</div>
+                    <div class="calendar-day">Сб</div>
+                    <div class="calendar-day">Вс</div>
+                    <!-- Даты будут заполнены JavaScript -->
+                </div>
+            </section>
+
+            <section class="tasks-section">
+                <div class="tasks-header">
+                    <h2 id="selected-date">Задачи</h2>
+                </div>
+                <div class="task-form">
+                    <div class="form-group">
+                        <label for="task-text">Текст задачи</label>
+                        <input type="text" id="task-text" placeholder="Введите задачу">
+                    </div>
+                    <div class="form-group">
+                        <label for="task-time">Время</label>
+                        <input type="time" id="task-time">
+                    </div>
+                    <div class="form-group">
+                        <label>Приоритет</label>
+                        <div class="priority-options">
+                            <div class="priority-option priority-high selected" data-priority="high">Высокий</div>
+                            <div class="priority-option priority-medium" data-priority="medium">Средний</div>
+                            <div class="priority-option priority-low" data-priority="low">Низкий</div>
+                        </div>
+                    </div>
+                    <button id="add-task">Добавить задачу</button>
+                </div>
+                <div class="tasks-list" id="tasks-list">
+                    <!-- Список задач будет заполнен JavaScript -->
+                </div>
+                <div class="actions">
+                    <button id="export-data">Экспорт данных</button>
+                    <button id="import-data">Импорт данных</button>
+                    <button id="archive-data">Архивировать</button>
+                    <button id="sound-settings">Настройка звука</button>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <div class="modal" id="sound-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Настройка звукового уведомления</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <p>Вы можете загрузить свой MP3-файл для уведомлений или использовать стандартный звук.</p>
+            <div class="form-group">
+                <input type="file" id="sound-file" accept=".mp3,.wav,.ogg">
+            </div>
+            <div class="sound-actions">
+                <button id="save-sound">Сохранить звук</button>
+                <button id="use-default-sound">Стандартный звук</button>
+                <button id="test-sound">Тест звука</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="notification" id="notification">
+        <button class="notification-close">&times;</button>
+        <div class="notification-title">Напоминание</div>
+        <div class="notification-content" id="notification-content">У вас есть задачи на сегодня!</div>
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+
+    <input type="file" id="import-file" style="display: none;" accept=".json">
+
+    <script>
+        // Основные переменные приложения
+        let currentDate = new Date();
+        let selectedDate = new Date();
+        let tasks = {};
+        let currentPriority = 'high';
+        let theme = 'light';
+        let notificationSound = null;
+        let activeNotifications = new Set();
+
+        // Элементы DOM
+        const currentMonthElement = document.getElementById('current-month');
+        const calendarDaysElement = document.getElementById('calendar-days');
+        const selectedDateElement = document.getElementById('selected-date');
+        const tasksListElement = document.getElementById('tasks-list');
+        const taskTextElement = document.getElementById('task-text');
+        const taskTimeElement = document.getElementById('task-time');
+        const addTaskButton = document.getElementById('add-task');
+        const prevMonthButton = document.getElementById('prev-month');
+        const nextMonthButton = document.getElementById('next-month');
+        const themeToggle = document.getElementById('theme-toggle');
+        const priorityOptions = document.querySelectorAll('.priority-option');
+        const exportButton = document.getElementById('export-data');
+        const importButton = document.getElementById('import-data');
+        const archiveButton = document.getElementById('archive-data');
+        const soundSettingsButton = document.getElementById('sound-settings');
+        const importFileElement = document.getElementById('import-file');
+        const soundModal = document.getElementById('sound-modal');
+        const closeModalButtons = document.querySelectorAll('.close-modal');
+        const saveSoundButton = document.getElementById('save-sound');
+        const useDefaultSoundButton = document.getElementById('use-default-sound');
+        const testSoundButton = document.getElementById('test-sound');
+        const soundFileElement = document.getElementById('sound-file');
+        const notificationElement = document.getElementById('notification');
+        const notificationContentElement = document.getElementById('notification-content');
+        const notificationCloseElement = document.querySelector('.notification-close');
+        const tooltipElement = document.getElementById('tooltip');
+
+        // Инициализация приложения
+        function init() {
+            loadData();
+            renderCalendar();
+            updateTasksList();
+            setupEventListeners();
+            checkForMonthChange();
+            setupNotifications();
+        }
+
+        // Загрузка данных из localStorage
+        function loadData() {
+            // Загрузка задач
+            const savedTasks = localStorage.getItem('dailyPlannerTasks');
+            if (savedTasks) {
+                tasks = JSON.parse(savedTasks);
+            }
+
+            // Загрузка темы
+            const savedTheme = localStorage.getItem('dailyPlannerTheme');
+            if (savedTheme) {
+                theme = savedTheme;
+                document.documentElement.setAttribute('data-theme', theme);
+                themeToggle.checked = theme === 'dark';
+            }
+
+            // Загрузка звука уведомления
+            const savedSound = localStorage.getItem('dailyPlannerNotificationSound');
+            if (savedSound) {
+                notificationSound = savedSound;
+            }
+        }
+
+        // Сохранение данных в localStorage
+        function saveData() {
+            localStorage.setItem('dailyPlannerTasks', JSON.stringify(tasks));
+            localStorage.setItem('dailyPlannerTheme', theme);
+            if (notificationSound) {
+                localStorage.setItem('dailyPlannerNotificationSound', notificationSound);
+            } else {
+                localStorage.removeItem('dailyPlannerNotificationSound');
+            }
+        }
+
+        // Отрисовка календаря
+        function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            // Установка заголовка месяца
+            const monthNames = [
+                'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+                'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+            ];
+            currentMonthElement.textContent = `${monthNames[month]} ${year}`;
+
+            // Очистка календаря (кроме дней недели)
+            while (calendarDaysElement.children.length > 7) {
+                calendarDaysElement.removeChild(calendarDaysElement.lastChild);
+            }
+
+            // Получение первого дня месяца и количество дней в месяце
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            // Корректировка для отображения понедельника первым
+            const startDay = firstDay === 0 ? 6 : firstDay - 1;
+
+            // Добавление пустых ячеек для дней предыдущего месяца
+            for (let i = 0; i < startDay; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'calendar-date';
+                calendarDaysElement.appendChild(emptyCell);
+            }
+
+            // Добавление дней текущего месяца
+            const today = new Date();
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateCell = document.createElement('div');
+                dateCell.className = 'calendar-date';
+                dateCell.textContent = day;
+
+                // Проверка, является ли день сегодняшним
+                if (year === today.getFullYear() && month === today.getMonth() && day === today.getDate()) {
+                    dateCell.classList.add('today');
+                }
+
+                // Проверка, является ли день выбранным
+                if (year === selectedDate.getFullYear() && month === selectedDate.getMonth() && day === selectedDate.getDate()) {
+                    dateCell.classList.add('selected');
+                }
+
+                // Добавление счетчика задач
+                const dateKey = `${year}-${month + 1}-${day}`;
+                if (tasks[dateKey] && tasks[dateKey].length > 0) {
+                    const taskCount = document.createElement('div');
+                    taskCount.className = 'task-count';
+                    taskCount.textContent = tasks[dateKey].length;
+                    dateCell.appendChild(taskCount);
+                }
+
+                // Обработчики событий
+                dateCell.addEventListener('click', () => {
+                    selectDate(new Date(year, month, day));
+                });
+
+                dateCell.addEventListener('mouseover', (e) => {
+                    showTooltip(e, dateKey);
+                });
+
+                dateCell.addEventListener('mouseout', () => {
+                    hideTooltip();
+                });
+
+                calendarDaysElement.appendChild(dateCell);
+            }
+        }
+
+        // Выбор даты
+        function selectDate(date) {
+            selectedDate = date;
+            renderCalendar();
+            updateTasksList();
+        }
+
+        // Обновление списка задач
+        function updateTasksList() {
+            const dateKey = formatDateKey(selectedDate);
+            selectedDateElement.textContent = `Задачи на ${selectedDate.toLocaleDateString('ru-RU')}`;
+
+            tasksListElement.innerHTML = '';
+
+            if (!tasks[dateKey] || tasks[dateKey].length === 0) {
+                const emptyMessage = document.createElement('div');
+                emptyMessage.textContent = 'Задачи на этот день отсутствуют';
+                emptyMessage.style.textAlign = 'center';
+                emptyMessage.style.padding = '20px';
+                emptyMessage.style.color = 'var(--completed-color)';
+                tasksListElement.appendChild(emptyMessage);
+                return;
+            }
+
+            // Сортировка задач по времени
+            const sortedTasks = [...tasks[dateKey]].sort((a, b) => {
+                return a.time.localeCompare(b.time);
+            });
+
+            sortedTasks.forEach((task, index) => {
+                const taskItem = document.createElement('div');
+                taskItem.className = 'task-item';
+
+                const priorityIndicator = document.createElement('div');
+                priorityIndicator.className = 'task-priority';
+                if (task.priority === 'high') {
+                    priorityIndicator.style.backgroundColor = 'var(--high-priority)';
+                } else if (task.priority === 'medium') {
+                    priorityIndicator.style.backgroundColor = 'var(--medium-priority)';
+                } else {
+                    priorityIndicator.style.backgroundColor = 'var(--low-priority)';
+                }
+
+                const taskText = document.createElement('div');
+                taskText.className = 'task-text';
+                if (task.completed) {
+                    taskText.classList.add('task-completed');
+                }
+                taskText.textContent = task.text;
+
+                const taskTime = document.createElement('div');
+                taskTime.className = 'task-time';
+                taskTime.textContent = task.time;
+
+                taskItem.appendChild(priorityIndicator);
+                taskItem.appendChild(taskText);
+                taskItem.appendChild(taskTime);
+
+                // Обработчик двойного клика для редактирования/удаления
+                taskItem.addEventListener('dblclick', () => {
+                    if (confirm('Вы хотите удалить эту задачу?')) {
+                        tasks[dateKey].splice(index, 1);
+                        if (tasks[dateKey].length === 0) {
+                            delete tasks[dateKey];
+                        }
+                        saveData();
+                        updateTasksList();
+                        renderCalendar();
+                    }
+                });
+
+                // Обработчик клика для отметки выполнения
+                taskItem.addEventListener('click', (e) => {
+                    // Предотвращаем срабатывание при двойном клике
+                    if (e.detail === 1) {
+                        setTimeout(() => {
+                            if (e.detail === 1) {
+                                task.completed = !task.completed;
+                                saveData();
+                                updateTasksList();
+                                renderCalendar();
+                            }
+                        }, 200);
+                    }
+                });
+
+                tasksListElement.appendChild(taskItem);
+            });
+        }
+
+        // Добавление новой задачи
+        function addTask() {
+            const text = taskTextElement.value.trim();
+            const time = taskTimeElement.value;
+
+            if (!text) {
+                alert('Пожалуйста, введите текст задачи');
+                return;
+            }
+
+            if (!time) {
+                alert('Пожалуйста, укажите время');
+                return;
+            }
+
+            const dateKey = formatDateKey(selectedDate);
+
+            if (!tasks[dateKey]) {
+                tasks[dateKey] = [];
+            }
+
+            tasks[dateKey].push({
+                text,
+                time,
+                priority: currentPriority,
+                completed: false
+            });
+
+            saveData();
+            updateTasksList();
+            renderCalendar();
+
+            // Очистка формы
+            taskTextElement.value = '';
+            taskTimeElement.value = '';
+        }
+
+        // Форматирование ключа даты
+        function formatDateKey(date) {
+            return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+        }
+
+        // Показать подсказку с задачами
+        function showTooltip(event, dateKey) {
+            if (!tasks[dateKey] || tasks[dateKey].length === 0) {
+                return;
+            }
+
+            tooltipElement.innerHTML = '';
+
+            tasks[dateKey].forEach(task => {
+                const taskElement = document.createElement('div');
+                taskElement.className = 'tooltip-task';
+
+                const priorityIndicator = document.createElement('div');
+                priorityIndicator.className = 'task-priority';
+                priorityIndicator.style.marginRight = '5px';
+
+                if (task.priority === 'high') {
+                    priorityIndicator.style.backgroundColor = 'var(--high-priority)';
+                } else if (task.priority === 'medium') {
+                    priorityIndicator.style.backgroundColor = 'var(--medium-priority)';
+                } else {
+                    priorityIndicator.style.backgroundColor = 'var(--low-priority)';
+                }
+
+                const taskText = document.createElement('span');
+                taskText.textContent = `${task.time} - ${task.text}`;
+                if (task.completed) {
+                    taskText.style.textDecoration = 'line-through';
+                    taskText.style.color = 'var(--completed-color)';
+                }
+
+                taskElement.appendChild(priorityIndicator);
+                taskElement.appendChild(taskText);
+                tooltipElement.appendChild(taskElement);
+            });
+
+            tooltipElement.style.display = 'block';
+            tooltipElement.style.left = `${event.pageX + 10}px`;
+            tooltipElement.style.top = `${event.pageY + 10}px`;
+        }
+
+        // Скрыть подсказку
+        function hideTooltip() {
+            tooltipElement.style.display = 'none';
+        }
+
+        // Переключение темы
+        function toggleTheme() {
+            theme = theme === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+            saveData();
+        }
+
+        // Выбор приоритета
+        function selectPriority(priority) {
+            currentPriority = priority;
+
+            priorityOptions.forEach(option => {
+                if (option.dataset.priority === priority) {
+                    option.classList.add('selected');
+                } else {
+                    option.classList.remove('selected');
+                }
+            });
+        }
+
+        // Экспорт данных
+        function exportData() {
+            const data = {
+                tasks: tasks,
+                theme: theme,
+                notificationSound: notificationSound
+            };
+
+            const dataStr = JSON.stringify(data);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = `daily-planner-backup-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+        }
+
+        // Импорт данных
+        function importData() {
+            importFileElement.click();
+        }
+
+        // Обработка импорта файла
+        function handleImportFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+
+                    if (data.tasks) tasks = data.tasks;
+                    if (data.theme) {
+                        theme = data.theme;
+                        document.documentElement.setAttribute('data-theme', theme);
+                        themeToggle.checked = theme === 'dark';
+                    }
+                    if (data.notificationSound) notificationSound = data.notificationSound;
+
+                    saveData();
+                    renderCalendar();
+                    updateTasksList();
+
+                    showNotification('Данные успешно импортированы!', 'success');
+                } catch (error) {
+                    alert('Ошибка при импорте данных: неверный формат файла');
+                }
+            };
+            reader.readAsText(file);
+
+            // Сброс значения input для возможности повторного выбора того же файла
+            event.target.value = '';
+        }
+
+        // Архивация данных
+        function archiveData() {
+            const currentMonth = currentDate.getMonth();
+            const currentYear = currentDate.getFullYear();
+
+            let archivedCount = 0;
+
+            Object.keys(tasks).forEach(dateKey => {
+                const [year, month] = dateKey.split('-').map(Number);
+
+                // Если месяц и год не совпадают с текущим, удаляем задачу
+                if (month !== currentMonth + 1 || year !== currentYear) {
+                    delete tasks[dateKey];
+                    archivedCount++;
+                }
+            });
+
+            saveData();
+            renderCalendar();
+            updateTasksList();
+
+            showNotification(`Архивировано ${archivedCount} задач из предыдущих месяцев`, 'info');
+        }
+
+        // Проверка смены месяца и перенос задач
+        function checkForMonthChange() {
+            const lastOpenedMonth = localStorage.getItem('dailyPlannerLastOpenedMonth');
+            const currentMonthKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
+
+            if (lastOpenedMonth && lastOpenedMonth !== currentMonthKey) {
+                // Перенос незавершенных задач из предыдущего месяца
+                const [lastYear, lastMonth] = lastOpenedMonth.split('-').map(Number);
+                const daysInLastMonth = new Date(lastYear, lastMonth + 1, 0).getDate();
+
+                let transferredCount = 0;
+
+                for (let day = 1; day <= daysInLastMonth; day++) {
+                    const oldDateKey = `${lastYear}-${lastMonth + 1}-${day}`;
+
+                    if (tasks[oldDateKey]) {
+                        const incompleteTasks = tasks[oldDateKey].filter(task => !task.completed);
+
+                        if (incompleteTasks.length > 0) {
+                            const newDateKey = `${currentDate.getFullYear()}-${currentDate.getMonth() + 1}-${day}`;
+
+                            if (!tasks[newDateKey]) {
+                                tasks[newDateKey] = [];
+                            }
+
+                            tasks[newDateKey] = tasks[newDateKey].concat(incompleteTasks);
+                            transferredCount += incompleteTasks.length;
+                        }
+
+                        // Удаляем старые задачи
+                        delete tasks[oldDateKey];
+                    }
+                }
+
+                if (transferredCount > 0) {
+                    saveData();
+                    showNotification(`Перенесено ${transferredCount} незавершенных задач из предыдущего месяца`, 'info');
+                }
+            }
+
+            // Сохраняем текущий месяц
+            localStorage.setItem('dailyPlannerLastOpenedMonth', currentMonthKey);
+        }
+
+        // Настройка уведомлений
+        function setupNotifications() {
+            // Запрос разрешения на уведомления
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+
+            // Проверка уведомлений каждую минуту
+            setInterval(checkNotifications, 60000);
+            // Первая проверка при загрузке
+            checkNotifications();
+        }
+
+        // Проверка уведомлений
+        function checkNotifications() {
+            const now = new Date();
+            const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+            const todayKey = formatDateKey(now);
+
+            if (tasks[todayKey]) {
+                tasks[todayKey].forEach(task => {
+                    const notificationId = `${todayKey}-${task.time}-${task.text}`;
+
+                    if (!task.completed && task.time === currentTime && !activeNotifications.has(notificationId)) {
+                        showNotification(`Напоминание: ${task.text}`, task.priority);
+                        activeNotifications.add(notificationId);
+
+                        // Воспроизведение звука
+                        playNotificationSound();
+
+                        // Мигание вкладки
+                        flashTab();
+                    }
+                });
+            }
+        }
+
+        // Показать уведомление
+        function showNotification(message, type = 'info') {
+            // Очистка предыдущих классов приоритета
+            notificationElement.classList.remove('notification-high', 'notification-medium', 'notification-low');
+
+            // Установка класса в зависимости от типа/приоритета
+            if (type === 'high') {
+                notificationElement.classList.add('notification-high');
+            } else if (type === 'medium') {
+                notificationElement.classList.add('notification-medium');
+            } else if (type === 'low') {
+                notificationElement.classList.add('notification-low');
+            }
+
+            notificationContentElement.textContent = message;
+            notificationElement.style.display = 'block';
+
+            // Браузерное уведомление
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('Персональный ассистент', {
+                    body: message,
+                    icon: '/favicon.ico'
+                });
+            }
+        }
+
+        // Скрыть уведомление
+        function hideNotification() {
+            notificationElement.style.display = 'none';
+            activeNotifications.clear();
+        }
+
+        // Воспроизведение звука уведомления
+        function playNotificationSound() {
+            if (notificationSound) {
+                // Создаем аудио из Data URL
+                const audio = new Audio(notificationSound);
+                audio.play().catch(e => {
+                    console.log('Ошибка воспроизведения пользовательского звука:', e);
+                    playDefaultSound();
+                });
+            } else {
+                playDefaultSound();
+            }
+        }
+
+        // Воспроизведение стандартного звука
+        function playDefaultSound() {
+            // Создаем простой звуковой сигнал с помощью Web Audio API
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.frequency.value = 800;
+                oscillator.type = 'sine';
+
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.5);
+            } catch (e) {
+                console.log('Web Audio API не поддерживается, используем fallback');
+                // Fallback - создаем простой beep звук
+                const audio = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA");
+                audio.play().catch(e => console.log('Ошибка воспроизведения звука:', e));
+            }
+        }
+
+        // Тестирование звука
+        function testSound() {
+            playNotificationSound();
+            showNotification('Тестовое уведомление', 'medium');
+        }
+
+        // Мигание вкладки
+        function flashTab() {
+            let isFlashing = false;
+            const originalTitle = document.title;
+
+            const flashInterval = setInterval(() => {
+                document.title = isFlashing ? originalTitle : '⚠️ Напоминание!';
+                isFlashing = !isFlashing;
+            }, 500);
+
+            setTimeout(() => {
+                clearInterval(flashInterval);
+                document.title = originalTitle;
+            }, 5000);
+        }
+
+        // Настройка обработчиков событий
+        function setupEventListeners() {
+            addTaskButton.addEventListener('click', addTask);
+
+            prevMonthButton.addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() - 1);
+                renderCalendar();
+            });
+
+            nextMonthButton.addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() + 1);
+                renderCalendar();
+            });
+
+            themeToggle.addEventListener('change', toggleTheme);
+
+            priorityOptions.forEach(option => {
+                option.addEventListener('click', () => {
+                    selectPriority(option.dataset.priority);
+                });
+            });
+
+            exportButton.addEventListener('click', exportData);
+            importButton.addEventListener('click', importData);
+            archiveButton.addEventListener('click', archiveData);
+            soundSettingsButton.addEventListener('click', () => {
+                soundModal.style.display = 'flex';
+            });
+
+            importFileElement.addEventListener('change', handleImportFile);
+
+            // Закрытие уведомления по клику
+            notificationElement.addEventListener('click', hideNotification);
+            notificationCloseElement.addEventListener('click', (e) => {
+                e.stopPropagation();
+                hideNotification();
+            });
+
+            // Модальное окно для звука
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    soundModal.style.display = 'none';
+                }
+            });
+
+            closeModalButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    soundModal.style.display = 'none';
+                });
+            });
+
+            saveSoundButton.addEventListener('click', () => {
+                const file = soundFileElement.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        notificationSound = e.target.result;
+                        saveData();
+                        showNotification('Звук уведомления сохранен', 'success');
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    alert('Пожалуйста, выберите звуковой файл');
+                }
+            });
+
+            useDefaultSoundButton.addEventListener('click', () => {
+                notificationSound = null;
+                saveData();
+                showNotification('Установлен стандартный звук уведомления', 'success');
+            });
+
+            testSoundButton.addEventListener('click', testSound);
+        }
+
+        // Запуск приложения
+        init();
+    </script>
+</body>
+</html>
